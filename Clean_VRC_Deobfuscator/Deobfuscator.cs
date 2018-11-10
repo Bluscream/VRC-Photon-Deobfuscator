@@ -309,7 +309,9 @@ namespace Clean_VRC_Deobfuscator
                 int totalConnectToRegionMethods = 0;
 
                 // PhotonViewCounters
-
+                int totalGetComponentPhotonViewMethods = 0;
+                int totalGetGameObjectPhotonViewMethods = 0;
+                int totalIntFindPhotonViewMethods = 0;
                 foreach (var method in type.Methods)
                 {
 
@@ -387,7 +389,47 @@ namespace Clean_VRC_Deobfuscator
 
                     if(type.Name == "PhotonView")
                     {
+                        List<string> tempRenamedMethods = new List<string>();
+                        // Locates DeserializeView method TEMPORARILY DISABLED BECAUSE IT RENAMES PHOTONVIEW??????
+                        if (method.Name == "DeserializeView")
+                        {
+                            /*
+                            Console.WriteLine(method.Parameters.Count.ToString());
+                            Console.WriteLine("Located DeserializeView method");
+                            Log(method.Parameters.ElementAt(0).Type.TryGetTypeDef().Name);
+                         //   method.Parameters.ElementAt(0).Name = "stream";
 
+                            Log(method.Parameters.ElementAt(1).Type.TryGetTypeDef().Name);
+                          //  method.Parameters.ElementAt(1).Name = "info";
+                          */
+                        }
+
+                        // Finds public static PhotonView Get(Component)
+                        if(method.Parameters.Count == 1 && method.Parameters.First().Type.GetName() == "Component" && method.ReturnType.GetName() == "PhotonView")
+                        {
+                            totalGetComponentPhotonViewMethods++;
+                            Console.WriteLine("Found PhotonView.GetComponentPhotonView()");
+                            tempRenamedMethods.Add(method.Name + "," + "GetComponentPhotonView" + totalGetComponentPhotonViewMethods.ToString());
+                            method.Name = "GetComponentPhotonView" + totalGetComponentPhotonViewMethods.ToString();
+
+                        }
+
+                        // Rename all Find(int viewID) methods
+                        if (method.ReturnType.GetName() == "PhotonView" && method.Name != "Find" && method.IsStatic == true && method.Parameters.Count == 1 && method.Parameters.First().Type.GetName() == "Int32")
+                        {
+                            totalIntFindPhotonViewMethods++;
+                            Console.WriteLine("Found Possible Find Photon View: " + method.Name + " - renamed to Find with a random number at the end");
+                            tempRenamedMethods.Add(method.Name + "," + "Find" + totalIntFindPhotonViewMethods.ToString());
+                            method.Name = "Find" + totalIntFindPhotonViewMethods.ToString();
+                        }
+                        // Finds PhotonView(Get(GameObject) methods
+                        if (method.ReturnType.GetName() == "PhotonView" && method.IsStatic == true && method.Parameters.Count == 1 && method.Parameters.First().Type.GetName() == "GameObject")
+                        {
+                            totalGetGameObjectPhotonViewMethods++;
+                            Console.WriteLine("Found Possible Get(GameObject) method" + method.Name + " - renamed to Find with a random number at the end");
+                            tempRenamedMethods.Add(method.Name + "," + "GetGameObjectPhotonView" + totalGetGameObjectPhotonViewMethods.ToString());
+                            method.Name = "GetGameObjectPhotonView" + totalGetGameObjectPhotonViewMethods.ToString();
+                        }
                     }
 
                     if(type.Name == "PhotonPlayer")
