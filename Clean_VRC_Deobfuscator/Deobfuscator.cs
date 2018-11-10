@@ -30,7 +30,7 @@ namespace Clean_VRC_Deobfuscator
         /// <summary>
         ///  Key = New Class Name, Value = the new and old method name seperated by commas like: newName, oldName
         /// </summary>
-        public Dictionary<string, string> renamedMethods = new Dictionary<string, string>();
+        public Dictionary<string, List<string>> renamedMethods = new Dictionary<string, List<string>>();
 
         public Deobfuscator(string assemblyPath)
         {
@@ -69,6 +69,8 @@ namespace Clean_VRC_Deobfuscator
                     renamedClasses.Add("RaiseEventOptions", type.FullName);
                     renamedClasses.Add("EventCaching", type.Fields.ElementAt(1).FieldType.TryGetTypeDef().FullName);
                     renamedClasses.Add("ReceiverGroup", type.Fields.ElementAt(4).FieldType.TryGetTypeDef().FullName);
+
+                    type.Name = "RaiseEventOptions";
 
                     type.Fields.ElementAt(0).Name = "Default";
 
@@ -197,6 +199,10 @@ namespace Clean_VRC_Deobfuscator
                     }
                 }
 
+                if(type.Name == "PhotonNetwork")
+                {
+
+                }
                 renamedProperties.Add(type.FullName, typeProps);
 
             }
@@ -295,18 +301,93 @@ namespace Clean_VRC_Deobfuscator
         {
             foreach(var type in assembly.Types)
             {
-                foreach(var method in type.Methods)
+                // PhotonNetwork Counters
+                int totalRaiseEventMethods = 0;
+                int totalJoinOrCreateRoomMethods = 0;
+                int totalJoinRandomRoomMethods = 0;
+                int totalSwitchProtocolMethods = 0;
+                int totalConnectToRegionMethods = 0;
+
+                // PhotonViewCounters
+
+                foreach (var method in type.Methods)
                 {
+
                     if (type.Name == "PhotonNetwork")
                     {
-                        int totalRaiseEventMethods = 0;
+                        List<string> tempRenamedMethods = new List<string>();
+
+                        // Finds RaiseEvent
                         if (method.IsStatic == true && method.Parameters.Count() == 4 && method.ReturnType.GetName() == "Boolean" && method.Parameters.First().Type.GetName() == "Byte")
                         {
                             totalRaiseEventMethods++;
                             Log("Found PhotonNetwork.RaiseEvent()");
-                            renamedMethods.Add("PhotonNetwork", method.Name + "," + "RaiseEvent" + totalRaiseEventMethods.ToString());
+                            tempRenamedMethods.Add(method.Name + "," + "RaiseEvent" + totalRaiseEventMethods.ToString());
                             method.Name = "RaiseEvent" + totalRaiseEventMethods.ToString();
                         }
+
+                        // find JoinOrCreateRoom and CreateRoom, and rename RoomOptions
+                        if(method.Parameters.Count == 4 && method.IsStatic == true && method.Parameters.ElementAt(0).Type.GetName() == "String" && method.Parameters.ElementAt(3).Type.GetName() == "String[]")
+                        {
+                            totalJoinOrCreateRoomMethods++;
+
+                            method.Parameters.ElementAt(0).Name = "roomName";
+
+                            method.Parameters.ElementAt(1).Name = "roomOptions";
+                            method.Parameters.ElementAt(1).Type.TryGetTypeDef().Name = "RoomOptions";
+                            method.Parameters.ElementAt(2).Name = "typedLobby";
+                            method.Parameters.ElementAt(3).Name = "expectedUsers";
+
+                            Console.WriteLine("found PhotonNetwork.JoinOrCreateRoom OR PhotonNetwork.CreateRoom (no way to differentiate currently, so both were named JoinOrCreateRoom)");
+                            tempRenamedMethods.Add(method.Name + "," + "JoinOrCreateRoom" + totalJoinOrCreateRoomMethods.ToString());
+                            method.Name = "JoinOrCreateRoom" + totalJoinOrCreateRoomMethods.ToString();
+                           
+                        }
+
+                        // find JoinRandomRoom and renames class RoomOptions and TypedLobby
+                        if(method.Parameters.Count == 6 && method.Parameters.ElementAt(0).Type.GetName() == "Hashtable" && method.Parameters.ElementAt(1).Type.GetName() == "Byte" && method.Parameters.ElementAt(5).Type.GetName() == "String[]")
+                        {
+                            totalJoinRandomRoomMethods++;
+                            Console.WriteLine("Found PhotonNetwork.JoinRandomRoom");
+                            method.Parameters.ElementAt(0).Name = "expectedCustomRoomProperties";
+                            method.Parameters.ElementAt(1).Name = "expectedMaxPlayers";
+
+                            method.Parameters.ElementAt(2).Name = "matchingType";
+                            method.Parameters.ElementAt(2).Type.TryGetTypeDef().Name = "MatchmakingMode";
+
+                            method.Parameters.ElementAt(3).Name = "typedLobby";
+                            method.Parameters.ElementAt(3).Type.TryGetTypeDef().Name = "TypedLobby"; ;
+
+                            method.Parameters.ElementAt(4).Name = "sqlLobbyFilter";
+                            method.Parameters.ElementAt(5).Name = "expectedUsers";
+                            tempRenamedMethods.Add(method.Name + "," + "JoinRandomRoom" + totalJoinRandomRoomMethods.ToString());
+                            method.Name = "JoinRandomRoom" + totalJoinRandomRoomMethods.ToString();
+                        }
+
+                        // find callEvent(which I currently don't think exists in VRC PhotonNetwork)
+                        if(method.Parameters.Count == 3 && method.Parameters.ElementAt(0).Type.GetName() == "Byte"  && method.Parameters.ElementAt(2).Type.GetName() == "Int32")
+                        {
+                            Console.WriteLine((method.Parameters.ElementAt(1).Type.GetName()));
+                            Console.WriteLine("Found PhotonNetwork.CallEvent");
+                        }
+
+                        // find SwitchToProtocol
+                        if(method.Parameters.Count == 1 && method.Parameters.First().Type.GetName() == "ConnectionProtocol")
+                        {
+                            Console.WriteLine("Found PhotonNetwork.SwitchToProtocol");
+                            totalSwitchProtocolMethods++;
+                            method.Parameters.ElementAt(0).Name = "cp";
+                            tempRenamedMethods.Add(method.Name + "," + "SwitchToProtocol" + totalSwitchProtocolMethods.ToString());
+                            method.Name = "SwitchToProtocol";
+                        }
+
+
+
+                    }
+
+                    if(type.Name == "PhotonView")
+                    {
+
                     }
 
                     if(type.Name == "PhotonPlayer")
