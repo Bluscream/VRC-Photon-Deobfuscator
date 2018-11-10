@@ -3,6 +3,8 @@
 Current Classes being Deobfuscated:
 1. PhotonPlayer
 2. PhotonNetwork
+3. PhotonView
+4. Some other core functions(like OnEvent) in classes like PunTurnManager.
   
 Current Enums being deobfuscated:
 1.  PhotonNetworkingMessage
