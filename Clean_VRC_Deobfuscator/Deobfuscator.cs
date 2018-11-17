@@ -198,10 +198,33 @@ namespace Clean_VRC_Deobfuscator
                         // this is thrown when the property has no getter
                     }
                 }
-
-                if(type.Name == "PhotonNetwork")
+                
+                if(type.Name == "PhotonPlayer")
                 {
+                    var viewIDField = type.Fields.Where(x => x.FieldType.GetName() == "Int32");
+                    var name = type.Fields.Where(x => x.FieldType.GetName() == "String");
 
+                    if(viewIDField.Count() == 1)
+                    {
+                        Console.WriteLine("renamed ViewID");
+                        viewIDField.First().Name = "viewID";
+                    }
+
+                    else
+                    {
+                        Console.WriteLine("Could not rename PhotonNetwork.ViewId - there was more than one viable field.");
+                    }
+
+                    if(name.Count() == 1)
+                    {
+                        Console.WriteLine("renamed name field");
+                        name.First().Name = "name";
+                    }
+
+                    else
+                    {
+                        Console.WriteLine("could not rename PhotonNetwork.Name - there was more than one viable field.");
+                    }
                 }
                 renamedProperties.Add(type.FullName, typeProps);
 
@@ -297,7 +320,7 @@ namespace Clean_VRC_Deobfuscator
             }
         }
 
-        public void renameClassMethods()
+        public void RenameClassMethods() // NOTE: Methods that are not static usually have a hidden 'this' parameter
         {
             foreach(var type in assembly.Types)
             {
@@ -308,12 +331,29 @@ namespace Clean_VRC_Deobfuscator
                 int totalSwitchProtocolMethods = 0;
                 int totalConnectToRegionMethods = 0;
 
-                // PhotonViewCounters
+                // PhotonView Counters
                 int totalGetComponentPhotonViewMethods = 0;
                 int totalGetGameObjectPhotonViewMethods = 0;
                 int totalIntFindPhotonViewMethods = 0;
+                int totalTransferOwnershipMethods = 0;
+
+                // PhotonPlayer counters
+                int totalIntFindPhotonPlayerMethods = 0;
+                int totalPhotonPlayerSetCustomPropertiesMethods = 0;
+                int totalGetNextForPhotonPlayerMethods = 0;
+                int totalGetNextForIdMethods = 0;
                 foreach (var method in type.Methods)
                 {
+
+                    if(method.Parameters.Count == 3 && method.ParamDefs.ElementAt(0).Name == "Byte" && method.Parameters.ElementAt(1).Type.GetName() == "Object" && method.Parameters.ElementAt(2).Type.GetName() == "Int32")
+                    {
+                        Console.WriteLine("Found Possible OnEvent method: " + method.Name);
+                    }
+
+                    if (method.Parameters.Count == 4 && method.Parameters.Where(x => x.IsHiddenThisParameter == true).Count() > 0 && method.Parameters.ElementAt(1).Type.GetName() == "Byte" && method.Parameters.ElementAt(2).Type.GetName() == "Object" && method.Parameters.ElementAt(3).Type.GetName() == "Int32")
+                    {
+                        Console.WriteLine("Found Possible OnEvent method: " + method.Name);
+                    }
 
                     if (type.Name == "PhotonNetwork")
                     {
@@ -390,27 +430,33 @@ namespace Clean_VRC_Deobfuscator
                     if(type.Name == "PhotonView")
                     {
                         List<string> tempRenamedMethods = new List<string>();
-                        // Locates DeserializeView method TEMPORARILY DISABLED BECAUSE IT RENAMES PHOTONVIEW??????
-                        if (method.Name == "DeserializeView")
+                        // Locates DeserializeView method and renames the PhotonStream and PhotonMessageInfo classes
+                        if (method.Name == "DeserializeView" && method.Parameters.Count == 3 && method.Parameters.First().IsHiddenThisParameter == true)
                         {
-                            /*
-                            Console.WriteLine(method.Parameters.Count.ToString());
                             Console.WriteLine("Located DeserializeView method");
-                            Log(method.Parameters.ElementAt(0).Type.TryGetTypeDef().Name);
-                         //   method.Parameters.ElementAt(0).Name = "stream";
 
-                            Log(method.Parameters.ElementAt(1).Type.TryGetTypeDef().Name);
-                          //  method.Parameters.ElementAt(1).Name = "info";
-                          */
+                            renamedClasses.Add("PhotonStream", method.Parameters.ElementAt(1).Type.GetFullName());
+                            method.Parameters.ElementAt(1).Type.TryGetTypeDef().Name = "PhotonStream";
+                            method.Parameters.ElementAt(1).Name = "stream";
+
+                            renamedClasses.Add("PhotonMessageInfo", method.Parameters.ElementAt(2).Type.GetFullName());
+                            method.Parameters.ElementAt(2).Type.TryGetTypeDef().Name = "PhotonMessageInfo";
+                            method.Parameters.ElementAt(2).Name = "info";
+
                         }
 
+                        // Find TransferOwnership methods
+                   //     Console.WriteLine(method.Name + " : " + method.ReturnType.GetName() + " : " + method.Parameters.First().Type.GetName());
+
+
                         // Finds public static PhotonView Get(Component)
-                        if(method.Parameters.Count == 1 && method.Parameters.First().Type.GetName() == "Component" && method.ReturnType.GetName() == "PhotonView")
+                        if (method.Parameters.Count == 1 && method.Parameters.First().Type.GetName() == "Component" && method.ReturnType.GetName() == "PhotonView")
                         {
                             totalGetComponentPhotonViewMethods++;
                             Console.WriteLine("Found PhotonView.GetComponentPhotonView()");
                             tempRenamedMethods.Add(method.Name + "," + "GetComponentPhotonView" + totalGetComponentPhotonViewMethods.ToString());
                             method.Name = "GetComponentPhotonView" + totalGetComponentPhotonViewMethods.ToString();
+                            // 
 
                         }
 
@@ -430,11 +476,57 @@ namespace Clean_VRC_Deobfuscator
                             tempRenamedMethods.Add(method.Name + "," + "GetGameObjectPhotonView" + totalGetGameObjectPhotonViewMethods.ToString());
                             method.Name = "GetGameObjectPhotonView" + totalGetGameObjectPhotonViewMethods.ToString();
                         }
+
+                        if (method.IsStatic == false && method.Parameters.Count == 2 && method.Parameters.First().IsHiddenThisParameter == true && method.Parameters.ElementAt(1).Type.GetName() == "PhotonPlayer")
+                        {
+                            totalTransferOwnershipMethods++;
+                            Console.WriteLine("Found TransferOwnership method(there is alot usually)");
+                            tempRenamedMethods.Add(method.Name + "," + "TransferOwnership" + totalTransferOwnershipMethods.ToString());
+                            method.Name = "TransferOwnership" + totalTransferOwnershipMethods.ToString();
+                            
+                        }
+
                     }
 
                     if(type.Name == "PhotonPlayer")
                     {
+                        List<string> tempRenamedMethods = new List<string>();
+                        if (method.Parameters.Count == 1 && method.Parameters.First().Type.GetName() == "Int32" && method.IsStatic == true && method.ReturnType.GetName() == "PhotonPlayer")
+                        {
+                            totalIntFindPhotonPlayerMethods++;
+                            tempRenamedMethods.Add(method.Name + "," + "Find" + totalIntFindPhotonPlayerMethods);
+                            Console.WriteLine("Found PhotonPlayer.Find() method(there is usually alot)" + " : " + method.Name + " : " + method.Parameters.Count);
+                            method.Name = "Find" + totalIntFindPhotonPlayerMethods.ToString();
+                            method.Parameters.First().Name = "id";
+                        }
 
+                        if (method.Parameters.Count == 1 && method.IsStatic == true && method.Parameters.First().Type.GetName() == "PhotonPlayer" && method.ReturnType.GetName() == "PhotonPlayer")
+                        {
+                            totalGetNextForPhotonPlayerMethods++;
+                            Console.WriteLine("Found PhotonPlayer.GetNextFor(PhotonPlayer) method");
+                            tempRenamedMethods.Add(method.Name + "," + "GetNextFor" + totalGetNextForPhotonPlayerMethods);
+                            method.Name = "GetNextFor" + totalGetNextForPhotonPlayerMethods.ToString();
+                        }
+
+                        if (method.Parameters.Count == 1 && method.IsStatic == true && method.Parameters.First().Type.GetName() == "Int32" && method.ReturnType.GetName() == "PhotonPlayer")
+                        {
+                            totalGetNextForIdMethods++;
+                            Console.WriteLine("Found PhotonPlayer.GetNextFor(int) method");
+                            tempRenamedMethods.Add(method.Name + "," + "GetNextFor" + totalGetNextForIdMethods);
+                            method.Name = "GetNextFor" + totalGetNextForIdMethods.ToString();
+                        }
+                    }
+
+                    if(type.Name == "PunTurnManager")
+                    {
+                        if(method.Name == "OnEvent" && method.Parameters.ElementAt(0).IsHiddenThisParameter == true && method.Parameters.ElementAt(1).Type.GetName() == "Byte")
+                        {
+                            Console.WriteLine("Renamed PunTurnManager.OnEvent parameters");
+                            method.Parameters.ElementAt(1).Name = "eventCode";
+                            method.Parameters.ElementAt(2).Name = "content";
+                            method.Parameters.ElementAt(3).Name = "senderId";
+
+                        }
                     }
                 }
 
