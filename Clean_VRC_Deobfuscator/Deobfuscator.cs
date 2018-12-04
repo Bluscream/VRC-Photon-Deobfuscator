@@ -190,7 +190,10 @@ namespace Clean_VRC_Deobfuscator
                             
                             typeProps.Add(prop.FullName + "," + newPropertyName);
                             prop.Name = newPropertyName;
+                            prop.SetMethod.Name = "set_" + newPropertyName;
                         }
+
+                      
                     }
 
                     catch(Exception ex)
@@ -344,16 +347,13 @@ namespace Clean_VRC_Deobfuscator
                 int totalGetNextForIdMethods = 0;
                 foreach (var method in type.Methods)
                 {
-
-                    if(method.Parameters.Count == 3 && method.ParamDefs.ElementAt(0).Name == "Byte" && method.Parameters.ElementAt(1).Type.GetName() == "Object" && method.Parameters.ElementAt(2).Type.GetName() == "Int32")
+                    if(type.Name == "Player" && method.Name == "PHEHAGMJGDM")
                     {
-                        Console.WriteLine("Found Possible OnEvent method: " + method.Name);
+                        Console.WriteLine("testing code!");
+                        if(method.Body.HasVariables == false && method.)
+                        Console.WriteLine(method.Body.Variables.Count);
                     }
-
-                    if (method.Parameters.Count == 4 && method.Parameters.Where(x => x.IsHiddenThisParameter == true).Count() > 0 && method.Parameters.ElementAt(1).Type.GetName() == "Byte" && method.Parameters.ElementAt(2).Type.GetName() == "Object" && method.Parameters.ElementAt(3).Type.GetName() == "Int32")
-                    {
-                        Console.WriteLine("Found Possible OnEvent method: " + method.Name);
-                    }
+                      
 
                     if (type.Name == "PhotonNetwork")
                     {
@@ -423,6 +423,7 @@ namespace Clean_VRC_Deobfuscator
                             method.Name = "SwitchToProtocol";
                         }
 
+                        
 
 
                     }
