@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Clean_VRC_Deobfuscator.ClassComparer;
+using dnlib.DotNet.Emit;
 
 namespace Clean_VRC_Deobfuscator
 {
@@ -40,6 +42,12 @@ namespace Clean_VRC_Deobfuscator
         public void Log(string text)
         {
             Console.WriteLine(text);
+        }
+
+        public void RenameMethod(string newMethodName, MethodDef method)
+        {
+            Console.WriteLine("Found " + newMethodName + " - " + method.Name);
+            method.Name = newMethodName;
         }
 
         public void RenameAllClasses()
@@ -229,6 +237,44 @@ namespace Clean_VRC_Deobfuscator
                         Console.WriteLine("could not rename PhotonNetwork.Name - there was more than one viable field.");
                     }
                 }
+
+                if (type.Name == "PhotonNetwork")
+                {
+                    var possibleNetworkingPeers = type.Fields.Where(x => x.Access == FieldAttributes.Assembly && x.IsStatic == true && x.IsInitOnly == false);
+
+                    List<FieldDef> likelyNetworkingPeers = new List<FieldDef>();
+                    foreach(var possibility in possibleNetworkingPeers)
+                    {
+                        if(possibility.FieldType.TryGetTypeDef() != null)
+                        {
+                            likelyNetworkingPeers.Add(possibility);
+                        }
+                    }
+
+                    if(likelyNetworkingPeers.Count == 1)
+                    {
+                        // renames networking peer class
+                        var networkingPeer = likelyNetworkingPeers.Single().FieldType.TryGetTypeDef();
+                        Console.WriteLine("FOUND NetworkingPeer - " + networkingPeer.Name + ". Renamed to NetworkingPeer");
+                        networkingPeer.Name = "NetworkingPeer";
+                        renamedClasses.Add("NetworkingPeer", networkingPeer.FullName);
+
+                        //renames networingPeer property in Photonnetwork
+                        typeProps.Add(likelyNetworkingPeers.Single().FullName + "," + "networkingPeer");
+                        likelyNetworkingPeers.Single().Name = "networkingPeer";
+
+                        // renames NetworkingPeer's base class, LoadBalancingPeer
+                        renamedClasses.Add("LoadBalancingPeer", networkingPeer.BaseType.FullName);
+                        networkingPeer.BaseType.Name = "LoadBalancingPeer";
+                    }
+
+                    else
+                    {
+                        Console.WriteLine("Could NOT find Networking Peer!!!!!!. There were " + likelyNetworkingPeers.Count + " possible classes that could not be Networking Peer. Please Narrow Options");
+                    }
+                }
+
+
                 renamedProperties.Add(type.FullName, typeProps);
 
             }
@@ -323,6 +369,55 @@ namespace Clean_VRC_Deobfuscator
             }
         }
 
+        public void CompareClasses()
+        {
+            ModuleDefMD preObfuscation = ModuleDefMD.Load(@"preObfuscation.dll");
+
+            var deobfuscatedPhotonNetwork = preObfuscation.Types.Single(x => x.Name == "PhotonNetwork");
+            var obfuscatedPhotonNetwork = assembly.Types.First(x => x.Name == "PhotonNetwork");
+            ClassComparer.Comparer.RewriteComparedClassMethods(obfuscatedPhotonNetwork, deobfuscatedPhotonNetwork);
+            ClassComparer.Comparer.RewriteComparedClassIL(obfuscatedPhotonNetwork, deobfuscatedPhotonNetwork);
+
+            var deobfuscatedNetworkingPeer = preObfuscation.Types.Single(x => x.Name == "NetworkingPeer");
+            var obfuscatedNetworkingPeer = assembly.Types.Single(x => x.Name == "NetworkingPeer");
+            ClassComparer.Comparer.RewriteComparedClassMethods(obfuscatedNetworkingPeer, deobfuscatedNetworkingPeer);
+            var result = ClassComparer.Comparer.RewriteComparedClassIL(obfuscatedPhotonNetwork, deobfuscatedPhotonNetwork);
+
+            string indent = "    ";
+
+            foreach(var pair in result)
+            {
+                Console.WriteLine(pair.Key);
+                foreach(var method in pair.Value)
+                {
+                    Console.WriteLine(indent + method.Name);
+                    method.Name = pair.Key.Name;
+                }
+            }
+            Console.WriteLine(result.Count); // for logging
+
+
+            var deobfuscatedPhotonPlayer = preObfuscation.Types.Single(x => x.Name == "PhotonPlayer");
+            var obfuscatedPhotonPlayer = assembly.Types.Single(x => x.Name == "PhotonPlayer");
+            ClassComparer.Comparer.RewriteComparedClassMethods(obfuscatedPhotonPlayer, deobfuscatedPhotonPlayer);
+            ClassComparer.Comparer.RewriteComparedClassIL(obfuscatedPhotonPlayer, deobfuscatedPhotonPlayer);
+
+            var deobfuscatedPhotonView = preObfuscation.Types.Single(x => x.Name == "PhotonView");
+            var obfuscatedPhotonView = assembly.Types.Single(x => x.Name == "PhotonView");
+            ClassComparer.Comparer.RewriteComparedClassMethods(obfuscatedPhotonView, deobfuscatedPhotonView);
+            ClassComparer.Comparer.RewriteComparedClassIL(obfuscatedPhotonView, deobfuscatedPhotonView);
+
+            var deobfuscatedLoadBalancingPeer = preObfuscation.Types.Single(x => x.Name == "LoadBalancingPeer");
+            var obfuscatedLoadBalancingPeer = assembly.Types.Single(x => x.Name == "LoadBalancingPeer");
+            ClassComparer.Comparer.RewriteComparedClassMethods(obfuscatedLoadBalancingPeer, deobfuscatedLoadBalancingPeer);
+            ClassComparer.Comparer.RewriteComparedClassIL(obfuscatedLoadBalancingPeer, deobfuscatedLoadBalancingPeer);
+            // (not functional atm)     var classPair = ClassComparer.Comparer.FindMostLikelyDeobfuscatedClass(assembly.Types.Single( x => x.FullName == "VRC.Player"), preObfuscation.Types.ToList());
+            //     Console.WriteLine(classPair.Key + "is key " + classPair.Value);
+
+
+      //   (not function atm either)   ClassComparer.Comparer.CompareClassFields(obfuscatedPhotonNetwork, deobfuscatedPhotonNetwork);
+        }
+
         public void RenameClassMethods() // NOTE: Methods that are not static usually have a hidden 'this' parameter
         {
             foreach(var type in assembly.Types)
@@ -332,7 +427,9 @@ namespace Clean_VRC_Deobfuscator
                 int totalJoinOrCreateRoomMethods = 0;
                 int totalJoinRandomRoomMethods = 0;
                 int totalSwitchProtocolMethods = 0;
-                int totalConnectToRegionMethods = 0;
+                int totalSetMasterClientMethods = 0;
+                int totalSetPlayerCustomPropertiesMethods = 0;
+                int totalDestroyMethods = 0;
 
                 // PhotonView Counters
                 int totalGetComponentPhotonViewMethods = 0;
@@ -342,18 +439,10 @@ namespace Clean_VRC_Deobfuscator
 
                 // PhotonPlayer counters
                 int totalIntFindPhotonPlayerMethods = 0;
-                int totalPhotonPlayerSetCustomPropertiesMethods = 0;
                 int totalGetNextForPhotonPlayerMethods = 0;
                 int totalGetNextForIdMethods = 0;
                 foreach (var method in type.Methods)
                 {
-                    if(type.Name == "Player" && method.Name == "PHEHAGMJGDM")
-                    {
-                        Console.WriteLine("testing code!");
-                        if(method.Body.HasVariables == false && method.)
-                        Console.WriteLine(method.Body.Variables.Count);
-                    }
-                      
 
                     if (type.Name == "PhotonNetwork")
                     {
@@ -420,11 +509,33 @@ namespace Clean_VRC_Deobfuscator
                             totalSwitchProtocolMethods++;
                             method.Parameters.ElementAt(0).Name = "cp";
                             tempRenamedMethods.Add(method.Name + "," + "SwitchToProtocol" + totalSwitchProtocolMethods.ToString());
-                            method.Name = "SwitchToProtocol";
+                            method.Name = "SwitchToProtocol" + totalSwitchProtocolMethods.ToString();
                         }
 
-                        
+                        if(method.ContainsString("Can not SetMasterClient(). Not in room or in offlineMode."))
+                        {
+                            Console.WriteLine("Found SetMasterClient - " + method.Name);
+                            totalSetMasterClientMethods++;
+                            tempRenamedMethods.Add(method.Name + "," + "SetMasterClient" + totalSetMasterClientMethods.ToString());
+                            method.Name = "SetMasterClient";
+                            method.Name = "SetMasterClient" + totalSetMasterClientMethods.ToString();
+                        }
 
+                        if(method.Parameters.Count == 1 && method.IsStatic && method.Parameters.First().Type.GetName() == "Hashtable" && method.ReturnType.GetName() == "Void")
+                        {
+                            Console.WriteLine("Found SetPlayerCustomProperties - " + method.Name);
+                            totalSetPlayerCustomPropertiesMethods++;
+                            tempRenamedMethods.Add(method.Name + "," + "SetPlayerCustomProperties" + totalSetPlayerCustomPropertiesMethods.ToString());
+                            method.Name = "SetPlayerCustomProperties" + totalSetPlayerCustomPropertiesMethods.ToString();
+                        }
+
+                        if(method.ContainsString("Destroy(targetPhotonView) failed, cause targetPhotonView is null."))
+                        {
+                            Console.WriteLine("Found Destroy - " + method.Name);
+                            totalDestroyMethods++;
+                            tempRenamedMethods.Add(method.Name + "," + "Destroy" + totalDestroyMethods.ToString());
+                            method.Name = "Destroy" + totalDestroyMethods.ToString();
+                        }
 
                     }
 
