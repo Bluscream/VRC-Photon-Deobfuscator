@@ -409,13 +409,33 @@ namespace Clean_VRC_Deobfuscator
 
             var deobfuscatedLoadBalancingPeer = preObfuscation.Types.Single(x => x.Name == "LoadBalancingPeer");
             var obfuscatedLoadBalancingPeer = assembly.Types.Single(x => x.Name == "LoadBalancingPeer");
-            ClassComparer.Comparer.RewriteComparedClassMethods(obfuscatedLoadBalancingPeer, deobfuscatedLoadBalancingPeer);
-            ClassComparer.Comparer.RewriteComparedClassIL(obfuscatedLoadBalancingPeer, deobfuscatedLoadBalancingPeer);
-            // (not functional atm)     var classPair = ClassComparer.Comparer.FindMostLikelyDeobfuscatedClass(assembly.Types.Single( x => x.FullName == "VRC.Player"), preObfuscation.Types.ToList());
-            //     Console.WriteLine(classPair.Key + "is key " + classPair.Value);
+
+            /*
+             var deobfuscatedNetwork = preObfuscation.Types.Single(x => x.GetStrings().Where(s => s.Contains("Could not find an event handler to process")).Count() >= 1);
+             var obfuscatedNetwork = preObfuscation.Types.Single(x => x.GetStrings().Where(s => s.Contains("Could not find an event handler to process")).Count() >= 1);
+
+            ClassComparer.Comparer.RewriteComparedClassMethods(obfuscatedNetwork, deobfuscatedNetwork);
+            ClassComparer.Comparer.RewriteComparedClassIL(obfuscatedNetwork, deobfuscatedNetwork);
+            */
+         //   ClassComparer.Comparer.FindIdenticalClasses(assembly, preObfuscation); (issues)
+         //     ClassComparer.Comparer.RewriteComparedClassMethods(obfuscatedLoadBalancingPeer, deobfuscatedLoadBalancingPeer);
+         //     ClassComparer.Comparer.RewriteComparedClassIL(obfuscatedLoadBalancingPeer, deobfuscatedLoadBalancingPeer);
+         // (not functional atm)     var classPair = ClassComparer.Comparer.FindMostLikelyDeobfuscatedClass(assembly.Types.Single( x => x.FullName == "VRC.Player"), preObfuscation.Types.ToList());
+         //     Console.WriteLine(classPair.Key + "is key " + classPair.Value);
 
 
-      //   (not function atm either)   ClassComparer.Comparer.CompareClassFields(obfuscatedPhotonNetwork, deobfuscatedPhotonNetwork);
+            //   (not function atm either)   ClassComparer.Comparer.CompareClassFields(obfuscatedPhotonNetwork, deobfuscatedPhotonNetwork);
+
+            foreach (var classType in preObfuscation.Types)
+            {
+                foreach(var method in classType.Methods)
+                {
+                    if(method.Parameters.Count == 4 && method.Parameters.First().IsHiddenThisParameter && method.Parameters.ElementAt(1).Type.GetName() == "Byte")
+                    {
+                        Console.WriteLine("POSSIBLE ONEVENT METHOD: " + method.Name);
+                    }
+                }
+            }
         }
 
         public void RenameClassMethods() // NOTE: Methods that are not static usually have a hidden 'this' parameter

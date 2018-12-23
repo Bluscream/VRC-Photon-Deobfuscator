@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="ClassComparer\Comparer.cs" />
     <Compile Include="ClassComparer\Extensions.cs" />
+    <Compile Include="ClassComparer\Signature.cs" />
     <Compile Include="Deobfuscator.cs" />
     <Compile Include="OnEventDetour.cs" />
     <Compile Include="Program.cs" />

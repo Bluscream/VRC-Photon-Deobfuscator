@@ -225,6 +225,28 @@ namespace Clean_VRC_Deobfuscator.ClassComparer
             return comparedClass;
         }
 
+        // returns a list of dictionary <obfuscatedClass, deobfuscatedClass>
+        public static List<Dictionary<TypeDef, TypeDef>> FindIdenticalClasses(ModuleDefMD obfuscatedAssembly, ModuleDefMD deobfuscatedAssembly)
+        {
+            
+            foreach(var deobfuscatedClass in deobfuscatedAssembly.Types)
+            {
+                if(deobfuscatedClass.GetStrings().Count > 8)
+                {
+                    var stringsToLookFor = deobfuscatedClass.GetStrings();
+
+                    var classesWithIdenticalStrings = obfuscatedAssembly.Types.Where(x => x.GetStrings().All(stringsToLookFor.Contains));
+
+                    if(classesWithIdenticalStrings.Count() == 1)
+                    {
+                        Console.WriteLine("Found Identical class - " + deobfuscatedClass.Name + " :: " + classesWithIdenticalStrings.First().ToString());
+                    }
+                }
+            }
+
+            return new List<Dictionary<TypeDef, TypeDef>>();
+        }
+
 
     }
 }

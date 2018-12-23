@@ -87,5 +87,23 @@ namespace Clean_VRC_Deobfuscator.ClassComparer
 
             return classStrings;
         }
+
+        public static bool IsIdenticalToMethod(this MethodDef thisMethod, MethodDef methodToCompare)
+        {
+            if(thisMethod.Body != null && methodToCompare.Body != null && thisMethod.Body.Instructions.Count > 3 && thisMethod.Body.Instructions.Count == methodToCompare.Body.Instructions.Count && thisMethod.GetMethodStrings() == methodToCompare.GetMethodStrings())
+            {
+                for(int i = 0; i < thisMethod.Body.Instructions.Count; i++)
+                {
+                    if(thisMethod.Body.Instructions[i].OpCode != methodToCompare.Body.Instructions[i].OpCode)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        }
     }
 }
