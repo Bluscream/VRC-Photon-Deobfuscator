@@ -22,7 +22,7 @@ namespace Clean_VRC_Deobfuscator
                 d.LogAllRenamedItems(); // dass
 
             d.CompareClasses();
-             Deobfuscator.assembly.Write(@"C:\Program Files (x86)\Steam\steamapps\common\VRChat\VRChat_Data\Managed\deobfuscatedAssemblyFinal.dll");
+            Deobfuscator.assembly.Write(@"C:\Program Files (x86)\Steam\steamapps\common\VRChat\VRChat_Data\Managed\deobfuscatedAssemblyFinal.dll");
             Console.WriteLine("Saving finished. You may now close the deobfuscator.");
             Console.ReadLine();
         }
