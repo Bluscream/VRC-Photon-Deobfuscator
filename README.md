@@ -32,14 +32,12 @@ Current Enums being deobfuscated:
 There are hundreds of other classes that get deobfuscated due to renamed classes making code more clear.
 
 
-After Deobfuscator:
-
-![After Deobfuscator](https://cdn.discordapp.com/attachments/356125271767908354/510174996677787658/unknown.png "After Deobfuscator")
-
-
-
 Before Deobfuscator:
 
 ![Before Deobfuscator](https://cdn.discordapp.com/attachments/501091178641621012/509914352816488448/unknown.png "Before Deobfuscator")
 
+
+After Deobfuscator:
+
+![After Deobfuscator](https://cdn.discordapp.com/attachments/356125271767908354/510174996677787658/unknown.png "After Deobfuscator")
 
