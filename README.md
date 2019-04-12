@@ -4,7 +4,7 @@ Current Classes being Deobfuscated:
 1. PhotonPlayer
 2. PhotonNetwork
 3. PhotonView
-4. Some other core functions(like OnEvent) in classes like PunTurnManager.
+4. A few other unnamed classes with relevant methods like OnEvent.
   
 (enum functionality is temporarily disabled)
 Current Enums being deobfuscated:
@@ -29,7 +29,7 @@ Current Enums being deobfuscated:
 4.  About 2500 other properties throughout different classes.
 
 
-There are alot more things deobfuscated but there's too many to list.
+There are hundreds of other classes that get deobfuscated due to renamed classes making code more clear.
 
 
 After Deobfuscator:
