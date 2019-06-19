@@ -10,19 +10,25 @@ namespace Clean_VRC_Deobfuscator
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Starting Deobfuscation");
-           
-            Deobfuscator d = new Deobfuscator(@"C:\Program Files (x86)\Steam\steamapps\common\VRChat\VRChat_Data\Managed\Assembly-CSharp.dll");
+            var inFile = new FileInfo(args.Length > 0 ? args[0] : @"C:\Program Files (x86)\Steam\steamapps\common\VRChat\VRChat_Data\Managed\Assembly-CSharp.dll");
+            Deobfuscator d = new Deobfuscator(inFile.FullName);
+            Console.WriteLine("Starting Deobfuscation on " + inFile.FullName);
             d.RenameAllClasses();
             d.RenameAllClassProperties();
             d.RenameAllEnums();
 
             Console.WriteLine("Saving Assembly... DO NOT close deobfuscator...");
-                 d.RenameClassMethods();
-                d.LogAllRenamedItems(); // dass
+            d.RenameClassMethods();
+            d.LogAllRenamedItems(); // dass
 
-            d.CompareClasses();
-            Deobfuscator.assembly.Write(@"C:\Program Files (x86)\Steam\steamapps\common\VRChat\VRChat_Data\Managed\deobfuscatedAssemblyFinal.dll");
+            try {
+                d.CompareClasses();
+            } catch (Exception ex) {
+                Console.WriteLine($"Failed to CompareClasses: {ex.Message}");
+            }
+            var outFile = new FileInfo(args.Length > 0 ? Path.Combine(inFile.DirectoryName, Path.GetFileNameWithoutExtension(inFile.Name) + "_deobfuscated.dll") : @"C:\Program Files (x86)\Steam\steamapps\common\VRChat\VRChat_Data\Managed\deobfuscatedAssemblyFinal.dll");
+            Console.WriteLine($"Saving Assembly to \"{outFile.FullName}\" ... DO NOT close deobfuscator...");
+            Deobfuscator.assembly.Write(outFile.FullName);
             Console.WriteLine("Saving finished. You may now close the deobfuscator.");
             Console.ReadLine();
         }
